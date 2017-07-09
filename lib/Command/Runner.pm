@@ -49,15 +49,10 @@ sub on {
 sub run {
     my $self = shift;
     my $command = $self->{command};
-    if (WIN32) {
+    if (WIN32 or ref $command eq 'CODE') {
         $self->_run($command);
     } else {
-        my $ref = ref $command;
-        if (!$ref || $ref eq 'ARRAY') {
-            $self->_exec($command);
-        } else {
-            $self->_run($command);
-        }
+        $self->_exec($command);
     }
 }
 
