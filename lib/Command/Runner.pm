@@ -142,8 +142,7 @@ sub _exec {
             } else {
                 my $buffer = $self->{buffer}{$type} ||= Command::Runner::LineBuffer->new;
                 $buffer->append($buf);
-                my @line = $buffer->get;
-                next unless @line;
+                next unless my @line = $buffer->get;
                 next unless my $sub = $self->{on}{$type};
                 $sub->($_) for @line;
             }
@@ -157,9 +156,9 @@ sub _exec {
         }
     }
     for my $type (qw(stdout stderr)) {
+        next unless my $sub = $self->{on}{$type};
         my $buffer = $self->{buffer}{$type} or next;
         my @line = $buffer->get(1) or next;
-        next unless my $sub = $self->{on}{$type};
         $sub->($_) for @line;
     }
     close $_ for $select->handles;
@@ -168,8 +167,8 @@ sub _exec {
         kill INT => $target;
     }
     if ($is_timeout && kill 0 => $pid) {
-        if (my $on_timeout = $self->{on}{timeout}) {
-            $on_timeout->($pid);
+        if (my $sub = $self->{on}{timeout}) {
+            $sub->($pid);
         }
         my $target = $Config::Config{d_setpgrp} ? -$pid : $pid;
         kill TERM => $target;
