@@ -79,17 +79,15 @@ sub _run {
         ($stdout, $stderr, $ret) = &Capture::Tiny::capture($sub);
     }
 
-    if (my $sub = $self->{on}{stdout}) {
-        while ($stdout =~ s/\A(.*?\n)//sm) {
-            $sub->($1);
-        }
-        $sub->($stdout) if length $stdout;
+    if (length $stdout and my $sub = $self->{on}{stdout}) {
+        my $buffer = Command::Runner::LineBuffer->new($stdout);
+        my @line = $buffer->get(1);
+        $sub->($_) for @line;
     }
-    if (!$self->{redirect} and my $sub = $self->{on}{stderr}) {
-        while ($stderr =~ s/\A(.*?\n)//sm) {
-            $sub->($1);
-        }
-        $sub->($stderr) if length $stderr;
+    if (!$self->{redirect} and length $stderr and my $sub = $self->{on}{stderr}) {
+        my $buffer = Command::Runner::LineBuffer->new($stderr);
+        my @line = $buffer->get(1);
+        $sub->($_) for @line;
     }
 
     return $ret;

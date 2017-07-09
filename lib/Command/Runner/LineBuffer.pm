@@ -3,8 +3,8 @@ use strict;
 use warnings;
 
 sub new {
-    my $class = shift;
-    bless { buffer => "" }, $class;
+    my ($class, $buffer) = @_;
+    bless { buffer => $buffer || "" }, $class;
 }
 
 sub append {
