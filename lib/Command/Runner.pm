@@ -27,7 +27,12 @@ for my $attr (qw(command redirect timeout)) {
     no strict 'refs';
     *$attr = sub {
         my $self = shift;
-        @_ > 0 ? $self->{$attr} = $_[0] : $self->{$attr};
+        if (@_) {
+            $self->{$attr} = $_[0];
+            $self;
+        } else {
+            $self->{$attr};
+        }
     };
 }
 
