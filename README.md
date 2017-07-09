@@ -8,17 +8,19 @@ Command::Runner - run external/Perl programs
 
     use Command::Runner;
 
-    my $runner = Command::Runner->new(command => ['ls', '-al']);
-    $runner->timeout(10);
-    $runner->on(stdout => sub { warn "out: $_[0]" });
-    $runner->on(stderr => sub { warn "err: $_[0]" });
-    $runner->on(timeout => sub { warn "timeout occurred." });
-    my $status = $runner->run;
+    my $status = Command::Runner->new
+      ->command(['ls', '-al'])
+      ->timeout(10)
+      ->on(stdout => sub { warn "out: $_[0]" })
+      ->on(stderr => sub { warn "err: $_[0]" })
+      ->on(timeout => sub { warn "timeout occurred" })
+      ->run;
 
-    $runner = Command::Runner->new(command => sub { warn 1; print 2 });
-    $runner->redirect(1);
-    $runner->on(stdout => sub { warn "merged: $_[0]" });
-    my $ret = $runner->run;
+    my $ret = Command::Runner->new
+      ->command(sub { warn 1; print 2 })
+      ->redirect(1)
+      ->on(stdout => sub { warn "merged: $_[0]" })
+      ->run;
 
 # DESCRIPTION
 
