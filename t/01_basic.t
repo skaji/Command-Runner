@@ -17,6 +17,19 @@ subtest code => sub {
     is $stderr[2], "1\n";
 };
 
+subtest code_rediret => sub {
+    my (@stdout, @stderr);
+    my $ret = Command::Runner->new
+        ->command(sub { for (1..2) { warn "1\n"; print "2\n" } warn "1\n"; print 2; return 3 })
+        ->redirect(1)
+        ->on(stdout => sub { push @stdout, $_[0] })
+        ->on(stderr => sub { push @stderr, $_[0] })
+        ->run;
+    is $ret, 3;
+    is @stdout, 6;
+    is @stderr, 0;
+};
+
 subtest array => sub {
     my ($stdout, $stderr) = ("", "");
     my $ret = Command::Runner->new
@@ -27,6 +40,19 @@ subtest array => sub {
     is $ret >> 8, 3;
     is $stdout, "2\n";
     is $stderr, "1\n";
+};
+
+subtest array_redirect => sub {
+    my ($stdout, $stderr) = ("", "");
+    my $ret = Command::Runner->new
+        ->command([$^X, "-e", '$|++; warn "1\n"; print "2\n"; exit 3'])
+        ->redirect(1)
+        ->on(stdout => sub { $stdout .= $_[0] })
+        ->on(stderr => sub { $stderr .= $_[0] })
+        ->run;
+    is $ret >> 8, 3;
+    is $stdout, "1\n2\n";
+    is $stderr, "";
 };
 
 subtest string => sub {
