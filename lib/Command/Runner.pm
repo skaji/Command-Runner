@@ -18,7 +18,7 @@ sub new {
     my ($class, %option) = @_;
     bless {
         %option,
-        buffer   => {},
+        _buffer   => {},
         on       => {},
     }, $class;
 }
@@ -140,10 +140,10 @@ sub _exec {
                 $select->remove($ready);
                 close $ready;
             } else {
-                my $buffer = $self->{buffer}{$type} ||= Command::Runner::LineBuffer->new;
+                next unless my $sub = $self->{on}{$type};
+                my $buffer = $self->{_buffer}{$type} ||= Command::Runner::LineBuffer->new;
                 $buffer->append($buf);
                 next unless my @line = $buffer->get;
-                next unless my $sub = $self->{on}{$type};
                 $sub->($_) for @line;
             }
         }
@@ -157,7 +157,7 @@ sub _exec {
     }
     for my $type (qw(stdout stderr)) {
         next unless my $sub = $self->{on}{$type};
-        my $buffer = $self->{buffer}{$type} or next;
+        my $buffer = $self->{_buffer}{$type} or next;
         my @line = $buffer->get(1) or next;
         $sub->($_) for @line;
     }
@@ -174,7 +174,9 @@ sub _exec {
         kill TERM => $target;
     }
     waitpid $pid, 0;
-    return $?;
+    my $status = $?;
+    $self->{_buffer} = +{}; # cleanup
+    return $status;
 }
 
 1;
