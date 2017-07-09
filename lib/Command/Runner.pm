@@ -42,8 +42,12 @@ sub on {
     if (!$valid{$type}) {
         die "unknown type '$type' passes to on() method";
     }
-    $self->{on}{$type} = $sub;
-    $self;
+    if ($sub) {
+        $self->{on}{$type} = $sub;
+        $self;
+    } else {
+        $self->{on}{$type};
+    }
 }
 
 sub run {
