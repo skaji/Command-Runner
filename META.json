@@ -39,6 +39,7 @@
       "runtime" : {
          "requires" : {
             "Capture::Tiny" : "0",
+            "Win32::ShellQuote" : "0",
             "perl" : "5.008001"
          }
       }

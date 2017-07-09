@@ -11,6 +11,8 @@ use Time::HiRes ();
 
 use constant WIN32 => $^O eq 'MSWin32';
 
+use if WIN32, 'Win32::ShellQuote';
+
 our $VERSION = '0.001';
 our $TICK = 0.05;
 
@@ -69,7 +71,12 @@ sub _run {
     } elsif (!$ref) {
         $sub = sub { system $command };
     } else {
-        $sub = sub { system { $command->[0] } @$command };
+        if (WIN32) {
+            my @command = Win32::ShellQuote::quote_system(@$command);
+            $sub = sub { system @command };
+        } else {
+            $sub = sub { system { $command->[0] } @$command };
+        }
     }
 
     my ($stdout, $stderr, $ret);
