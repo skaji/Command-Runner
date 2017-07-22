@@ -72,7 +72,7 @@ sub _run {
         $sub = sub { system $command };
     } else {
         if (WIN32) {
-            my @command = Win32::ShellQuote::quote_system(@$command);
+            my @command = Win32::ShellQuote::quote_native(@$command);
             $sub = sub { system @command };
         } else {
             $sub = sub { system { $command->[0] } @$command };
