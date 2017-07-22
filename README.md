@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/skaji/Command-Runner.svg?branch=master)](https://travis-ci.org/skaji/Command-Runner)
+[![AppVeyor Status](https://ci.appveyor.com/api/projects/status/github/skaji/Command-Runner?branch=master&svg=true)](https://ci.appveyor.com/project/skaji/Command-Runner)
 
 # NAME
 
