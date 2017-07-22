@@ -1,4 +1,5 @@
 language: perl
+dist: trusty
 sudo: false
 perl:
   - "5.8"
