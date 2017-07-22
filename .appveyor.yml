@@ -1,0 +1,12 @@
+build: off
+shallow_clone: true
+skip_tags: true
+skip_branch_with_pr: true
+init:
+  - git config --global core.autocrlf input
+install:
+  - choco install strawberryperl --version 5.26.0.1
+  - SET "PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%"
+  - cpanm -nq --installdeps --with-develop .
+test_script:
+  - yath -l t
