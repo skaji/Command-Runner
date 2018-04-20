@@ -103,7 +103,7 @@ sub _run_code {
         $err = $@;
         alarm 0;
     }
-    return ($ret, undef) unless defined $err;
+    return ($ret, undef) unless $err;
     if ($err eq "__TIMEOUT__\n") {
         return ($ret, 1);
     } else {
