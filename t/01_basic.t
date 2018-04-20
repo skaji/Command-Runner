@@ -3,6 +3,8 @@ use warnings;
 use Test::More;
 use Command::Runner;
 
+my $windows = $^O eq 'MSWin32';
+
 subtest code => sub {
     my (@stdout, @stderr);
     my $ret = Command::Runner->new
@@ -31,6 +33,7 @@ subtest code_rediret => sub {
 };
 
 subtest array => sub {
+    plan skip_all => 'disable on windows' if $windows;
     my ($stdout, $stderr) = ("", "");
     my $ret = Command::Runner->new
         ->command([$^X, "-e", '$|++; warn "1\n"; print "2\n"; exit 3'])
@@ -43,6 +46,7 @@ subtest array => sub {
 };
 
 subtest array_redirect => sub {
+    plan skip_all => 'disable on windows' if $windows;
     my ($stdout, $stderr) = ("", "");
     my $ret = Command::Runner->new
         ->command([$^X, "-e", '$|++; warn "1\n"; print "2\n"; exit 3'])
@@ -82,6 +86,7 @@ subtest string_redirect => sub {
 };
 
 subtest timeout => sub {
+    plan skip_all => 'disable on windows' if $windows;
     my ($stdout, $stderr) = ("", "");
     my ($ret, $is_timeout) = Command::Runner->new
         ->command([$^X, "-e", '$|++; warn "1\n"; print "2\n"; sleep 1'])

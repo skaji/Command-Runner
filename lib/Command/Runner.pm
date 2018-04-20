@@ -113,7 +113,7 @@ sub _run_code {
 
 sub _system_win32 {
     my ($self, $command) = @_;
-    my $pid = system 1, $command;
+    my $pid = system 1, ref $command ? @$command : $command;
 
     my $timeout_at = $self->{timeout} ? Time::HiRes::time() + $self->{timeout} : undef;
     my $INT; local $SIG{INT} = sub { $INT++ };
@@ -124,9 +124,9 @@ sub _system_win32 {
             $INT = 0;
         }
 
-        my $ret = waitpid $pid, POSIX::NOHANG();
+        my $ret = waitpid $pid, POSIX::WNOHANG();
         if ($ret == -1) {
-            warn "waitpid($pid, POSIX::NOHANG()) returns unexpectedly -1";
+            warn "waitpid($pid, POSIX::WNOHANG()) returns unexpectedly -1";
             last;
         } elsif ($ret > 0) {
             $exit = $?;
@@ -232,20 +232,23 @@ __END__
 
 =head1 NAME
 
-Command::Runner - run external/Perl programs
+Command::Runner - run external commands and Perl code refs
 
 =head1 SYNOPSIS
 
   use Command::Runner;
 
-  my $status = Command::Runner->new
-    ->command(['ls', '-al'])
-    ->timeout(10)
-    ->on(stdout => sub { warn "out: $_[0]" })
-    ->on(stderr => sub { warn "err: $_[0]" })
-    ->on(timeout => sub { warn "timeout occurred" })
-    ->run;
+  my $cmd = Command::Runner->new(
+    command => ['ls', '-al'],
+    timeout => 10,
+    on => {
+      stdout => sub { warn "out: $_[0]\n" },
+      stderr => sub { warn "err: $_[0]\n" },
+    },
+  );
+  my ($status, $is_timeout) = $cmd->run;
 
+  # you can also use method chains
   my $ret = Command::Runner->new
     ->command(sub { warn 1; print 2 })
     ->redirect(1)
@@ -254,11 +257,58 @@ Command::Runner - run external/Perl programs
 
 =head1 DESCRIPTION
 
-Command::Runner runs external/Perl programs.
+Command::Runner runs external commands and Perl code refs
+
+=head1 METHODS
+
+=head2 new
+
+A constructor, which takes:
+
+=over 4
+
+=item command
+
+arrays of external commands, strings of external programs, or Perl code refs
+
+B<CAUTION!> Currently this module does NOTHING for quoting.
+YOU are responsible to quote argument lists. See L<Win32::ShellQuote> and L<String::ShellQuote>.
+
+=item timeout
+
+timeout second. You can set float second.
+
+=item redirect
+
+if this is true, stderr redirects to stdout
+
+=item on.stdout, on.stderr
+
+code refs that will be called whenever stdout/stderr is available
+
+=back
+
+=head2 run
+
+Run command. It returns C<< ($status, $is_timeout) >> in list context, and C<< $status >> in scalar context.
 
 =head1 MOTIVATION
 
-TBD
+I develop a CPAN client L<App::cpm>, where I need to execute external commands and Perl code refs with:
+
+=over 4
+
+=item timeout
+
+=item flexible logging
+
+=item high portability
+
+=back
+
+While L<App::cpanminus> has excellent APIs for such use, I still needed to tweak them in L<App::cpm>.
+
+So I ended up creating a seperate module, Command::Runner.
 
 =head1 AUTHOR
 

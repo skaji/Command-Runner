@@ -13,7 +13,7 @@ subtest basic => sub {
 
     my @test;
     if ($windows) {
-        push @test, Win32::ShellQuote::quote_system(@command);
+        push @test, [Win32::ShellQuote::quote_system(@command)];
         push @test, sub { local $| = 1; print "1\n"; warn 1; print "2\n"; warn 2; return 0 };
     } else {
         push @test, \@command;
@@ -39,7 +39,7 @@ subtest timeout => sub {
 
     my @test;
     if ($windows) {
-        push @test, Win32::ShellQuote::quote_system(@command);
+        push @test, [Win32::ShellQuote::quote_system(@command)];
         push @test, sub { local $| = 1; print "1\n"; warn 1; print "2\n"; warn 2; sleep 2; return 0 };
     } else {
         push @test, \@command;
@@ -55,9 +55,40 @@ subtest timeout => sub {
         my ($exit, $is_timeout) = $cmd->run;
         ok $is_timeout;
         is $exit, 15 if !$windows && (ref $test ne 'CODE'); # SIGTERM
+
+        next if $windows;
         is @stdout, 2;
         is @stderr, 2;
     }
+};
+
+subtest pipe => sub {
+    my @command1 = ($^X,  "-le", q{print "2";});
+    my @command2 = ($^X, "-nle", "print");
+    my ($command1, $command2);
+    if ($windows) {
+        $command1 = Win32::ShellQuote::quote_system_string(@command1);
+        $command2 = Win32::ShellQuote::quote_system_string(@command2);
+    } else {
+        $command1 = String::ShellQuote::shell_quote_best_effort(@command1);
+        $command2 = String::ShellQuote::shell_quote_best_effort(@command2);
+    }
+    my $command = "$command1 | $command2";
+    note "test for $command";
+
+    my (@stdout, @stderr);
+    my $cmd = Command::Runner->new(
+        command => $command,
+        on => {
+            stdout => sub { push @stdout, @_ },
+            stderr => sub { push @stderr, @_ },
+        },
+    );
+    my $exit = $cmd->run;
+    is $exit, 0;
+    is @stdout, 1;
+    is $stdout[0], 2;
+    is @stderr, 0;
 };
 
 done_testing;
