@@ -11,17 +11,15 @@ use Time::HiRes ();
 
 use constant WIN32 => $^O eq 'MSWin32';
 
-use if WIN32, 'Win32::ShellQuote';
-
 our $VERSION = '0.001';
 our $TICK = 0.05;
 
 sub new {
     my ($class, %option) = @_;
     bless {
+        _buffer => {},
+        on => {},
         %option,
-        _buffer   => {},
-        on       => {},
     }, $class;
 }
 
@@ -40,10 +38,6 @@ for my $attr (qw(command redirect timeout)) {
 
 sub on {
     my ($self, $type, $sub) = @_;
-    my %valid = map { $_ => 1 } qw(stdout stderr timeout);
-    if (!$valid{$type}) {
-        die "unknown type '$type' passes to on() method";
-    }
     if ($sub) {
         $self->{on}{$type} = $sub;
         $self;
@@ -55,35 +49,25 @@ sub on {
 sub run {
     my $self = shift;
     my $command = $self->{command};
-    if (WIN32 or ref $command eq 'CODE') {
-        $self->_run($command);
+    my ($exit, $is_timeout);
+    if (ref $command eq 'CODE') {
+        ($exit, $is_timeout) = $self->_wrap(sub { $self->_run_code($command) });
+    } elsif (WIN32) {
+        ($exit, $is_timeout) = $self->_wrap(sub { $self->_system_win32($command) });
     } else {
-        $self->_exec($command);
+        ($exit, $is_timeout) = $self->_exec($command);
     }
+    wantarray ? ($exit, $is_timeout) : $exit;
 }
 
-sub _run {
-    my ($self, $command) = @_;
-    my $sub;
-    my $ref = ref $command;
-    if ($ref eq 'CODE') {
-        $sub = $command;
-    } elsif (!$ref) {
-        $sub = sub { system $command };
-    } else {
-        if (WIN32) {
-            my @command = Win32::ShellQuote::quote_native(@$command);
-            $sub = sub { system @command };
-        } else {
-            $sub = sub { system { $command->[0] } @$command };
-        }
-    }
+sub _wrap {
+    my ($self, $code) = @_;
 
-    my ($stdout, $stderr, $ret);
+    my ($stdout, $stderr, $ret, $is_timeout);
     if ($self->{redirect}) {
-        ($stdout, $ret) = &Capture::Tiny::capture_merged($sub);
+        ($stdout, $ret, $is_timeout) = &Capture::Tiny::capture_merged($code);
     } else {
-        ($stdout, $stderr, $ret) = &Capture::Tiny::capture($sub);
+        ($stdout, $stderr, $ret, $is_timeout) = &Capture::Tiny::capture($code);
     }
 
     if (length $stdout and my $sub = $self->{on}{stdout}) {
@@ -97,7 +81,68 @@ sub _run {
         $sub->($_) for @line;
     }
 
-    return $ret;
+    return ($ret, $is_timeout);
+}
+
+sub _run_code {
+    my ($self, $code) = @_;
+
+    if (!$self->{timeout}) {
+        my $ret = $code->();
+        return ($ret, undef);
+    }
+
+    my ($ret, $err);
+    {
+        local $SIG{__DIE__} = 'DEFAULT';
+        local $SIG{ALRM} = sub { die "__TIMEOUT__\n" };
+        eval {
+            alarm $self->{timeout};
+            $ret = $code->();
+        };
+        $err = $@;
+        alarm 0;
+    }
+    return ($ret, undef) unless defined $err;
+    if ($err eq "__TIMEOUT__\n") {
+        return ($ret, 1);
+    } else {
+        die $err;
+    }
+}
+
+sub _system_win32 {
+    my ($self, $command) = @_;
+    my $pid = system 1, $command;
+
+    my $timeout_at = $self->{timeout} ? Time::HiRes::time() + $self->{timeout} : undef;
+    my $INT; local $SIG{INT} = sub { $INT++ };
+    my ($exit, $is_timeout);
+    while (1) {
+        if ($INT) {
+            kill INT => $pid;
+            $INT = 0;
+        }
+
+        my $ret = waitpid $pid, POSIX::NOHANG();
+        if ($ret == -1) {
+            warn "waitpid($pid, POSIX::NOHANG()) returns unexpectedly -1";
+            last;
+        } elsif ($ret > 0) {
+            $exit = $?;
+            last;
+        } else {
+            if ($timeout_at) {
+                my $now = Time::HiRes::time();
+                if ($timeout_at <= $now) {
+                    $is_timeout = 1;
+                    kill TERM => $pid;
+                }
+            }
+            Time::HiRes::sleep($TICK);
+        }
+    }
+    return ($exit, $is_timeout);
 }
 
 sub _exec {
@@ -128,12 +173,18 @@ sub _exec {
     }
     close $_ for grep $_, $stdout_write, $stderr_write;
 
+    my $signal_pid = $Config::Config{d_setpgrp} ? -$pid : $pid;
+
     my $INT; local $SIG{INT} = sub { $INT++ };
     my $is_timeout;
     my $timeout_at = $self->{timeout} ? Time::HiRes::time() + $self->{timeout} : undef;
     my $select = IO::Select->new(grep $_, $stdout_read, $stderr_read);
     while (1) {
-        last if $INT;
+        if ($INT) {
+            kill INT => $signal_pid;
+            last;
+        }
+
         last if $select->count == 0;
         for my $ready ($select->can_read($TICK)) {
             my $type = $ready == $stdout_read ? "stdout" : "stderr";
@@ -147,7 +198,7 @@ sub _exec {
             } else {
                 next unless my $sub = $self->{on}{$type};
                 my $buffer = $self->{_buffer}{$type} ||= Command::Runner::LineBuffer->new;
-                $buffer->append($buf);
+                $buffer->add($buf);
                 next unless my @line = $buffer->get;
                 $sub->($_) for @line;
             }
@@ -156,6 +207,7 @@ sub _exec {
             my $now = Time::HiRes::time();
             if ($now > $timeout_at) {
                 $is_timeout++;
+                kill TERM => $signal_pid;
                 last;
             }
         }
@@ -167,21 +219,10 @@ sub _exec {
         $sub->($_) for @line;
     }
     close $_ for $select->handles;
-    if ($INT && kill 0 => $pid) {
-        my $target = $Config::Config{d_setpgrp} ? -$pid : $pid;
-        kill INT => $target;
-    }
-    if ($is_timeout && kill 0 => $pid) {
-        if (my $sub = $self->{on}{timeout}) {
-            $sub->($pid);
-        }
-        my $target = $Config::Config{d_setpgrp} ? -$pid : $pid;
-        kill TERM => $target;
-    }
     waitpid $pid, 0;
     my $status = $?;
     $self->{_buffer} = +{}; # cleanup
-    return $status;
+    return ($status, $is_timeout);
 }
 
 1;

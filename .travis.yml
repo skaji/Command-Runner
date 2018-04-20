@@ -1,5 +1,4 @@
 language: perl
-dist: trusty
 sudo: false
 perl:
   - "5.8"
@@ -9,4 +8,4 @@ perl:
 install:
   - curl -sSL --compressed https://git.io/cpm | perl - install -g --with-develop
 script:
-  - yath -l t xt
+  - prove -l t xt
