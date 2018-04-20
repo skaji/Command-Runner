@@ -71,6 +71,9 @@
       }
    },
    "version" : "0.001",
+   "x_contributors" : [
+      "Shoichi Kaji <skaji@outlook.com>"
+   ],
    "x_serialization_backend" : "Cpanel::JSON::XS version 4.02",
    "x_static_install" : 1
 }
