@@ -17,10 +17,10 @@ Command::Runner - run external commands and Perl code refs
         stderr => sub { warn "err: $_[0]\n" },
       },
     );
-    my ($status, $is_timeout) = $cmd->run;
+    my $res = $cmd->run;
 
     # you can also use method chains
-    my $ret = Command::Runner->new
+    my $res = Command::Runner->new
       ->command(sub { warn 1; print 2 })
       ->redirect(1)
       ->on(stdout => sub { warn "merged: $_[0]" })
@@ -51,13 +51,22 @@ A constructor, which takes:
 
     if this is true, stderr redirects to stdout
 
+- keep
+
+    by default, if stdout/stderr is consumed, it will disappear. Disable this by setting keep option true
+
 - on.stdout, on.stderr
 
     code refs that will be called whenever stdout/stderr is available
 
 ## run
 
-Run command. It returns `($status, $is_timeout)` in list context, and `$status` in scalar context.
+Run command. It returns a hash reference, which contains:
+
+- result
+- timeout
+- stdout
+- stderr
 
 # MOTIVATION
 
