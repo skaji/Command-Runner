@@ -26,11 +26,39 @@ subtest basic => sub {
         my $cmd = Command::Runner->new(command => $test);
         my @stdout; $cmd->on(stdout => sub { push @stdout, @_ });
         my @stderr; $cmd->on(stderr => sub { push @stderr, @_ });
-        my ($exit, $is_timeout) = $cmd->run;
-        is $exit, 0;
-        ok !$is_timeout;
+        my $res = $cmd->run;
+        is $res->{result}, 0;
+        ok !$res->{timeout};
         is @stdout, 2;
         is @stderr, 2;
+    }
+};
+
+subtest basic => sub {
+    my @command = ($^X, '-e', '$|++; print "1\n"; warn 1; print "2\n"; warn 2');
+
+    my @test;
+    if ($windows) {
+        push @test, [Win32::ShellQuote::quote_system(@command)];
+        push @test, sub { local $| = 1; print "1\n"; warn 1; print "2\n"; warn 2; return 0 };
+    } else {
+        push @test, \@command;
+        push @test, String::ShellQuote::shell_quote_best_effort(@command);
+        push @test, sub { local $| = 1; print "1\n"; warn 1; print "2\n"; warn 2; return 0 };
+
+    }
+    for my $test (@test) {
+        note "test for $test";
+        my $cmd = Command::Runner->new(command => $test, keep => 1);
+        my @stdout; $cmd->on(stdout => sub { push @stdout, @_ });
+        my @stderr; $cmd->on(stderr => sub { push @stderr, @_ });
+        my $res = $cmd->run;
+        is $res->{result}, 0;
+        ok !$res->{timeout};
+        is @stdout, 2;
+        is @stderr, 2;
+        is $res->{stdout}, "1\n2\n";
+        like $res->{stderr}, qr{^1 at .* line \d+\.\n2 at .* line \d+\.\n$};
     }
 };
 
@@ -52,9 +80,9 @@ subtest timeout => sub {
         my $cmd = Command::Runner->new(command => $test, timeout => 1);
         my @stdout; $cmd->on(stdout => sub { push @stdout, @_ });
         my @stderr; $cmd->on(stderr => sub { push @stderr, @_ });
-        my ($exit, $is_timeout) = $cmd->run;
-        ok $is_timeout;
-        is $exit, 15 if !$windows && (ref $test ne 'CODE'); # SIGTERM
+        my $res = $cmd->run;
+        ok $res->{timeout};
+        is $res->{result}, 15 if !$windows && (ref $test ne 'CODE'); # SIGTERM
 
         next if $windows;
         is @stdout, 2;
@@ -84,8 +112,8 @@ subtest pipe => sub {
             stderr => sub { push @stderr, @_ },
         },
     );
-    my $exit = $cmd->run;
-    is $exit, 0;
+    my $res = $cmd->run;
+    is $res->{result}, 0;
     is @stdout, 1;
     is $stdout[0], 2;
     is @stderr, 0;

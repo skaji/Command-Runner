@@ -3,13 +3,23 @@ use strict;
 use warnings;
 
 sub new {
-    my ($class, $buffer) = @_;
-    bless { buffer => defined $buffer ? $buffer : "" }, $class;
+    my ($class, %args) = @_;
+    my $buffer = exists $args{buffer} ? $args{buffer} : "";
+    bless {
+        buffer => $buffer,
+        $args{keep} ? (keep => $buffer) : (),
+    }, $class;
+}
+
+sub raw {
+    my $self = shift;
+    exists $self->{keep} ? $self->{keep} : undef;
 }
 
 sub add {
     my ($self, $buffer) = @_;
     $self->{buffer} .= $buffer;
+    $self->{keep} .= $buffer if exists $self->{keep};
     $self;
 }
 

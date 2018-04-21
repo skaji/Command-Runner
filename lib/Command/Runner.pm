@@ -17,13 +17,14 @@ our $TICK = 0.05;
 sub new {
     my ($class, %option) = @_;
     bless {
+        keep => 0,
         _buffer => {},
         on => {},
         %option,
     }, $class;
 }
 
-for my $attr (qw(command redirect timeout)) {
+for my $attr (qw(command redirect timeout keep)) {
     no strict 'refs';
     *$attr = sub {
         my $self = shift;
@@ -49,63 +50,66 @@ sub on {
 sub run {
     my $self = shift;
     my $command = $self->{command};
-    my ($exit, $is_timeout);
     if (ref $command eq 'CODE') {
-        ($exit, $is_timeout) = $self->_wrap(sub { $self->_run_code($command) });
+        $self->_wrap(sub { $self->_run_code($command) });
     } elsif (WIN32) {
-        ($exit, $is_timeout) = $self->_wrap(sub { $self->_system_win32($command) });
+        $self->_wrap(sub { $self->_system_win32($command) });
     } else {
-        ($exit, $is_timeout) = $self->_exec($command);
+        $self->_exec($command);
     }
-    wantarray ? ($exit, $is_timeout) : $exit;
 }
 
 sub _wrap {
     my ($self, $code) = @_;
 
-    my ($stdout, $stderr, $ret, $is_timeout);
+    my ($stdout, $stderr, $res, $timeout);
     if ($self->{redirect}) {
-        ($stdout, $ret, $is_timeout) = &Capture::Tiny::capture_merged($code);
+        ($stdout, $res, $timeout) = &Capture::Tiny::capture_merged($code);
     } else {
-        ($stdout, $stderr, $ret, $is_timeout) = &Capture::Tiny::capture($code);
+        ($stdout, $stderr, $res, $timeout) = &Capture::Tiny::capture($code);
     }
 
     if (length $stdout and my $sub = $self->{on}{stdout}) {
-        my $buffer = Command::Runner::LineBuffer->new($stdout);
+        my $buffer = Command::Runner::LineBuffer->new(buffer => $stdout);
         my @line = $buffer->get(1);
         $sub->($_) for @line;
     }
     if (!$self->{redirect} and length $stderr and my $sub = $self->{on}{stderr}) {
-        my $buffer = Command::Runner::LineBuffer->new($stderr);
+        my $buffer = Command::Runner::LineBuffer->new(buffer => $stderr);
         my @line = $buffer->get(1);
         $sub->($_) for @line;
     }
 
-    return ($ret, $is_timeout);
+    return {
+        result => $res,
+        timeout => $timeout,
+        stdout => $self->{keep} ? $stdout : "",
+        stderr => $self->{keep} ? $stderr : "",
+    };
 }
 
 sub _run_code {
     my ($self, $code) = @_;
 
     if (!$self->{timeout}) {
-        my $ret = $code->();
-        return ($ret, undef);
+        my $res = $code->();
+        return ($res, undef);
     }
 
-    my ($ret, $err);
+    my ($res, $err);
     {
         local $SIG{__DIE__} = 'DEFAULT';
         local $SIG{ALRM} = sub { die "__TIMEOUT__\n" };
         eval {
             alarm $self->{timeout};
-            $ret = $code->();
+            $res = $code->();
         };
         $err = $@;
         alarm 0;
     }
-    return ($ret, undef) unless $err;
+    return ($res, undef) unless $err;
     if ($err eq "__TIMEOUT__\n") {
-        return ($ret, 1);
+        return ($res, 1);
     } else {
         die $err;
     }
@@ -117,32 +121,32 @@ sub _system_win32 {
 
     my $timeout_at = $self->{timeout} ? Time::HiRes::time() + $self->{timeout} : undef;
     my $INT; local $SIG{INT} = sub { $INT++ };
-    my ($exit, $is_timeout);
+    my ($exit, $timeout);
     while (1) {
         if ($INT) {
             kill INT => $pid;
             $INT = 0;
         }
 
-        my $ret = waitpid $pid, POSIX::WNOHANG();
-        if ($ret == -1) {
+        my $res = waitpid $pid, POSIX::WNOHANG();
+        if ($res == -1) {
             warn "waitpid($pid, POSIX::WNOHANG()) returns unexpectedly -1";
             last;
-        } elsif ($ret > 0) {
+        } elsif ($res > 0) {
             $exit = $?;
             last;
         } else {
             if ($timeout_at) {
                 my $now = Time::HiRes::time();
                 if ($timeout_at <= $now) {
-                    $is_timeout = 1;
+                    $timeout = 1;
                     kill TERM => $pid;
                 }
             }
             Time::HiRes::sleep($TICK);
         }
     }
-    return ($exit, $is_timeout);
+    return ($exit, $timeout);
 }
 
 sub _exec {
@@ -176,7 +180,7 @@ sub _exec {
     my $signal_pid = $Config::Config{d_setpgrp} ? -$pid : $pid;
 
     my $INT; local $SIG{INT} = sub { $INT++ };
-    my $is_timeout;
+    my $timeout;
     my $timeout_at = $self->{timeout} ? Time::HiRes::time() + $self->{timeout} : undef;
     my $select = IO::Select->new(grep $_, $stdout_read, $stderr_read);
     while (1) {
@@ -197,7 +201,7 @@ sub _exec {
                 close $ready;
             } else {
                 next unless my $sub = $self->{on}{$type};
-                my $buffer = $self->{_buffer}{$type} ||= Command::Runner::LineBuffer->new;
+                my $buffer = $self->{_buffer}{$type} ||= Command::Runner::LineBuffer->new(keep => $self->{keep});
                 $buffer->add($buf);
                 next unless my @line = $buffer->get;
                 $sub->($_) for @line;
@@ -206,7 +210,7 @@ sub _exec {
         if ($timeout_at) {
             my $now = Time::HiRes::time();
             if ($now > $timeout_at) {
-                $is_timeout++;
+                $timeout++;
                 kill TERM => $signal_pid;
                 last;
             }
@@ -220,9 +224,14 @@ sub _exec {
     }
     close $_ for $select->handles;
     waitpid $pid, 0;
-    my $status = $?;
+    my $res = {
+        result => $?,
+        timeout => $timeout,
+        stdout => $self->{_buffer}{stdout} ? $self->{_buffer}{stdout}->raw : "",
+        stderr => $self->{_buffer}{stderr} ? $self->{_buffer}{stderr}->raw : "",
+    };
     $self->{_buffer} = +{}; # cleanup
-    return ($status, $is_timeout);
+    return $res;
 }
 
 1;
@@ -246,10 +255,10 @@ Command::Runner - run external commands and Perl code refs
       stderr => sub { warn "err: $_[0]\n" },
     },
   );
-  my ($status, $is_timeout) = $cmd->run;
+  my $res = $cmd->run;
 
   # you can also use method chains
-  my $ret = Command::Runner->new
+  my $res = Command::Runner->new
     ->command(sub { warn 1; print 2 })
     ->redirect(1)
     ->on(stdout => sub { warn "merged: $_[0]" })
@@ -282,6 +291,10 @@ timeout second. You can set float second.
 
 if this is true, stderr redirects to stdout
 
+=item keep
+
+by default, if stdout/stderr is consumed, it will disappear. Disable this by setting keep option true
+
 =item on.stdout, on.stderr
 
 code refs that will be called whenever stdout/stderr is available
@@ -290,7 +303,19 @@ code refs that will be called whenever stdout/stderr is available
 
 =head2 run
 
-Run command. It returns C<< ($status, $is_timeout) >> in list context, and C<< $status >> in scalar context.
+Run command. It returns a hash reference, which contains:
+
+=over 4
+
+=item result
+
+=item timeout
+
+=item stdout
+
+=item stderr
+
+=back
 
 =head1 MOTIVATION
 

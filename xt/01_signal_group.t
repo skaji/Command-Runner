@@ -33,12 +33,12 @@ ___
 
 my (undef, $filename) = File::Temp::tempfile UNLINK => 0, EXLOCK => 0, OPEN => 0;
 
-my ($ret, $is_timeout) = Command::Runner->new
+my $res = Command::Runner->new
     ->command([$^X, "-e", $code, $filename])
     ->timeout(0.5)
     ->run;
-is $ret, 15; # SIGTERM
-ok $is_timeout;
+is $res->{result}, 15; # SIGTERM
+ok $res->{timeout};
 open my $fh, "<", $filename or die "$filename: $!";
 my $line = <$fh>;
 is $line, "GOT SIGTERM\n";
