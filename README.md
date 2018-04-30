@@ -44,7 +44,7 @@ A constructor, which takes:
 - commandf
 
     a command string by `sprintf`-like syntax.
-    You can use positional formatting with conversions `%q` (with quoting) and `%s` (as it is).
+    You can use positional formatting together with a conversion `%q` (with quoting).
 
     Here is an example:
 
@@ -55,8 +55,6 @@ A constructor, which takes:
         # or, you can set it separately
         my $cmd = Command::Runner->new;
         $cmd->commandf('%q %q >> %q', '/path/to/cat', 'foo bar.txt', 'out.txt');
-
-    See [String::Formatter](https://metacpan.org/pod/String::Formatter) for details.
 
 - timeout
 

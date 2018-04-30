@@ -299,7 +299,7 @@ If an array of external commands is specified, it is automatically quoted on Win
 =item commandf
 
 a command string by C<sprintf>-like syntax.
-You can use positional formatting with conversions C<%q> (with quoting) and C<%s> (as it is).
+You can use positional formatting together with a conversion C<%q> (with quoting).
 
 Here is an example:
 
@@ -310,8 +310,6 @@ Here is an example:
   # or, you can set it separately
   my $cmd = Command::Runner->new;
   $cmd->commandf('%q %q >> %q', '/path/to/cat', 'foo bar.txt', 'out.txt');
-
-See L<String::Formatter> for details.
 
 =item timeout
 
