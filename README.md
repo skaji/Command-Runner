@@ -12,19 +12,19 @@ Command::Runner - run external commands and Perl code refs
     my $cmd = Command::Runner->new(
       command => ['ls', '-al'],
       timeout => 10,
-      on => {
-        stdout => sub { warn "out: $_[0]\n" },
-        stderr => sub { warn "err: $_[0]\n" },
-      },
+      stdout  => sub { warn "out: $_[0]\n" },
+      stderr  => sub { warn "err: $_[0]\n" },
     );
     my $res = $cmd->run;
 
-    # you can also use method chains
-    my $res = Command::Runner->new
-      ->command(sub { warn 1; print 2 })
-      ->redirect(1)
-      ->on(stdout => sub { warn "merged: $_[0]" })
-      ->run;
+    my $untar = Command::Runner->new;
+    $untar->commandf(
+      '%q -dc %q | %q tf -',
+      'C:\\Program Files (x86)\\GnuWin32\\bin\\gzip.EXE',
+      'File-ShareDir-Install-0.13.tar.gz'
+      'C:\\Program Files (x86)\\GnuWin32\\bin\\tar.EXE',
+    );
+    my $capture = $untar->run->{stdout};
 
 # DESCRIPTION
 
@@ -38,10 +38,25 @@ A constructor, which takes:
 
 - command
 
-    arrays of external commands, strings of external programs, or Perl code refs
+    an array of external commands, a string of external programs, or a Perl code ref.
+    If an array of external commands is specified, it is automatically quoted on Windows.
 
-    **CAUTION!** Currently this module does NOTHING for quoting.
-    YOU are responsible to quote argument lists. See [Win32::ShellQuote](https://metacpan.org/pod/Win32::ShellQuote) and [String::ShellQuote](https://metacpan.org/pod/String::ShellQuote).
+- commandf
+
+    a command string by `sprintf`-like syntax.
+    You can use positional formatting with conversions `%q` (with quoting) and `%s` (as it is).
+
+    Here is an example:
+
+        my $cmd = Command::Runner->new(
+          commandf => [ '%q %q >> %q', '/path/to/cat', 'foo bar.txt', 'out.txt' ],
+        );
+
+        # or, you can set it separately
+        my $cmd = Command::Runner->new;
+        $cmd->commandf('%q %q >> %q', '/path/to/cat', 'foo bar.txt', 'out.txt');
+
+    See [String::Formatter](https://metacpan.org/pod/String::Formatter) for details.
 
 - timeout
 
@@ -53,11 +68,12 @@ A constructor, which takes:
 
 - keep
 
-    by default, if stdout/stderr is consumed, it will disappear. Disable this by setting keep option true
+    by default, even if stdout/stderr is consumed, it is preserved for return value.
+    You can disable this behavior by setting keep option false.
 
-- on.stdout, on.stderr
+- stdout / stderr
 
-    code refs that will be called whenever stdout/stderr is available
+    a code ref that will be called whenever stdout/stderr is available
 
 ## run
 
@@ -67,14 +83,15 @@ Run command. It returns a hash reference, which contains:
 - timeout
 - stdout
 - stderr
+- pid
 
 # MOTIVATION
 
 I develop a CPAN client [App::cpm](https://metacpan.org/pod/App::cpm), where I need to execute external commands and Perl code refs with:
 
 - timeout
+- quoting
 - flexible logging
-- high portability
 
 While [App::cpanminus](https://metacpan.org/pod/App::cpanminus) has excellent APIs for such use, I still needed to tweak them in [App::cpm](https://metacpan.org/pod/App::cpm).
 
