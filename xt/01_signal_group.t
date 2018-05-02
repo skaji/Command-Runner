@@ -25,10 +25,11 @@ if ($pid == 0) {
         print {$fh} "GOT SIGTERM\n";
     }
     exit 0;
+} else {
+    my $TERM; $SIG{TERM} = sub { $TERM++ };
+    wait;
+    exit( $TERM ? 2 : 3 );
 }
-
-wait;
-exit;
 ___
 
 my (undef, $filename) = File::Temp::tempfile UNLINK => 0, EXLOCK => 0, OPEN => 0;
@@ -37,7 +38,7 @@ my $res = Command::Runner->new
     ->command([$^X, "-e", $code, $filename])
     ->timeout(0.5)
     ->run;
-is $res->{result}, 15; # SIGTERM
+is $res->{result} >> 8, 2;
 ok $res->{timeout};
 open my $fh, "<", $filename or die "$filename: $!";
 my $line = <$fh>;
