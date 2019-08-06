@@ -1,15 +1,14 @@
 language: perl
-sudo: false
-perl:
-  - "5.8"
-  - "5.10"
-  - "5.16"
-  - "5.26"
+matrix:
+  include:
+    - perl: "5.8"
+      dist: trusty
+    - perl: "5.10"
+      dist: trusty
+    - perl: "5.16"
+      dist: trusty
+    - perl: "5.30"
 install:
   - curl -sSL --compressed https://git.io/cpm | perl - install -g --with-develop
 script:
   - prove -l t xt
-notifications:
-  email: false
-  slack:
-    secure: MGy7AGYo83p1p+Q+PN2yyhwC7dL0qZ5FIg9/fR0k4DOuRs0elNbGQwWxav+E/gBsvP2JpyDVuyeCCuZilA5jhnRCJ+VFcbCnMI9pBRdjhclJFGUatAEl22ufOirH1S3truuVVhWX5waj9DS3vi22YhrXVdfo6ks13/DAnrPgEYqj5f6A9lefvW09fFAy4iA1z0iAqW89OLa53gZmVXfOQh36i4EMHnuMJugJ7VGq/Zf0wzMv81BneBvHaIS79ACwLVeGYawpsLce1wwnpum11NSiPUKkE1SwOB/uXz5+SkW69RP573ZQpxICjODwe4LCNlX+vD3OWjn9X1vJJ2v8OksxwP3bh96JnyGg/4lF5bCPDMCKtyP1KW6drzB3xOEkjSlA8fr7S9AsmNBOX9MhY1nei6CVaFFIZ2I6bgHl2jvk9XqzNsosCzsHtpuTvw3pR3Z/bFnHC7ipiRAZD0Lx4VD5kkOiGu/+Ba2kLD7PLpEjcTqjbr7+Hdgw09KceXFWSe+3sCJNCgczI43DhmyBjDALAKlIMPX4IgdzKnRnRtysedJ0dW2ErhRdSQgZaupiyDQJRNJTmUD+LvvMX04LPQ4OoUPLdy1zbHu8eEd5f8JHq+yYXTNp5LQXogkyOJ1vislkM74vONQsKFNZWVUGWjAK2lKD8oY7eCaCsxxbXJU=
