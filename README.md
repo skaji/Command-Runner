@@ -1,5 +1,6 @@
-[![Build Status](https://travis-ci.org/skaji/Command-Runner.svg?branch=master)](https://travis-ci.org/skaji/Command-Runner)
-[![AppVeyor Status](https://ci.appveyor.com/api/projects/status/github/skaji/Command-Runner?branch=master&svg=true)](https://ci.appveyor.com/project/skaji/Command-Runner)
+[![Actions Status](https://github.com/skaji/Command-Runner/workflows/linux/badge.svg)](https://github.com/skaji/Command-Runner/actions)
+[![Actions Status](https://github.com/skaji/Command-Runner/workflows/macos/badge.svg)](https://github.com/skaji/Command-Runner/actions)
+[![Actions Status](https://github.com/skaji/Command-Runner/workflows/windows/badge.svg)](https://github.com/skaji/Command-Runner/actions)
 
 # NAME
 
@@ -98,13 +99,13 @@ Run command. It returns a hash reference, which contains:
 
 # MOTIVATION
 
-I develop a CPAN client [App::cpm](https://metacpan.org/pod/App::cpm), where I need to execute external commands and Perl code refs with:
+I develop a CPAN client [App::cpm](https://metacpan.org/pod/App%3A%3Acpm), where I need to execute external commands and Perl code refs with:
 
 - timeout
 - quoting
 - flexible logging
 
-While [App::cpanminus](https://metacpan.org/pod/App::cpanminus) has excellent APIs for such use, I still needed to tweak them in [App::cpm](https://metacpan.org/pod/App::cpm).
+While [App::cpanminus](https://metacpan.org/pod/App%3A%3Acpanminus) has excellent APIs for such use, I still needed to tweak them in [App::cpm](https://metacpan.org/pod/App%3A%3Acpm).
 
 So I ended up creating a seperate module, Command::Runner.
 
