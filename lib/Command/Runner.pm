@@ -3,7 +3,6 @@ use strict;
 use warnings;
 
 use Capture::Tiny ();
-use Command::Runner::Format ();
 use Command::Runner::LineBuffer;
 use Command::Runner::Quote ();
 use Command::Runner::Timeout;
