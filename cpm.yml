@@ -1,0 +1,13 @@
+prereqs:
+  runtime:
+    requires:
+      Capture::Tiny:
+      String::ShellQuote:
+      Win32::ShellQuote:
+      perl: { version: '5.008001' }
+  test:
+    requires:
+      Test::More: { version: '0.98' }
+  develop:
+    requires:
+      File::Which:

@@ -1,6 +1,4 @@
-[![Actions Status](https://github.com/skaji/Command-Runner/workflows/linux/badge.svg)](https://github.com/skaji/Command-Runner/actions)
-[![Actions Status](https://github.com/skaji/Command-Runner/workflows/macos/badge.svg)](https://github.com/skaji/Command-Runner/actions)
-[![Actions Status](https://github.com/skaji/Command-Runner/workflows/windows/badge.svg)](https://github.com/skaji/Command-Runner/actions)
+[![Actions Status](https://github.com/skaji/Command-Runner/actions/workflows/test.yml/badge.svg)](https://github.com/skaji/Command-Runner/actions)
 
 # NAME
 

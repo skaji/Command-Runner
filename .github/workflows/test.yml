@@ -1,4 +1,4 @@
-name: linux
+name: test
 
 on:
   push:
@@ -9,27 +9,26 @@ on:
   pull_request:
 
 jobs:
-  perl:
-
+  linux:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         perl-version:
-          - '5.8'
-          - '5.10'
-          - '5.16'
+          - '5.8-buster'
           - 'latest'
-          - 'threaded'
-
     container:
       image: perl:${{ matrix.perl-version }}
-
     steps:
       - uses: actions/checkout@v2
-      - name: perl -V
-        run: perl -V
+      - run: perl -V
       - name: Install Dependencies
         run: curl -fsSL --compressed https://git.io/cpm | perl - install -g --with-develop --with-recommends --show-build-log-on-failure
-      - name: Run Tests
-        run: prove -lr t xt
+      - run: prove -l t xt
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: perl -V
+      - name: Install Dependencies
+        run: curl -fsSL https://git.io/cpm | perl - install -g --with-develop --with-recommends --show-build-log-on-failure
+      - run: prove -l t xt
