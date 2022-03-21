@@ -8,6 +8,7 @@ use Command::Runner::LineBuffer;
 use Command::Runner::Quote ();
 use Command::Runner::Timeout;
 use Config ();
+use File::pushd ();
 use IO::Select;
 use POSIX ();
 use Time::HiRes ();
@@ -32,7 +33,7 @@ sub new {
     $self;
 }
 
-for my $attr (qw(command redirect timeout keep stdout stderr env)) {
+for my $attr (qw(command cwd redirect timeout keep stdout stderr env)) {
     no strict 'refs';
     *$attr = sub {
         my $self = shift;
@@ -51,7 +52,6 @@ sub commandf {
 
 sub run {
     my $self = shift;
-    local %ENV = %{$self->{env}} if $self->{env};
     my $command = $self->{command};
     if (ref $command eq 'CODE') {
         $self->_wrap(sub { $self->_run_code($command) });
@@ -94,8 +94,17 @@ sub _wrap {
 sub _run_code {
     my ($self, $code) = @_;
 
+    my $wrap_code;
+    if ($self->{env} || $self->{cwd}) {
+        $wrap_code = sub {
+            local %ENV = %{$self->{env}} if $self->{env};
+            my $guard = File::pushd::pushd($self->{cwd}) if $self->{cwd};
+            $code->();
+        };
+    }
+
     if (!$self->{timeout}) {
-        my $result = $code->();
+        my $result = $wrap_code ? $wrap_code->() : $code->();
         return { pid => $$, result => $result };
     }
 
@@ -105,7 +114,7 @@ sub _run_code {
         local $SIG{ALRM} = sub { die "__TIMEOUT__\n" };
         eval {
             alarm $self->{timeout};
-            $result = $code->();
+            $result = $wrap_code ? $wrap_code->() : $code->();
         };
         $err = $@;
         alarm 0;
@@ -125,8 +134,12 @@ sub _system_win32 {
     my $pid;
     if (ref $command) {
         my @cmd = map { Command::Runner::Quote::quote_win32($_) } @$command;
+        local %ENV = %{$self->{env}} if $self->{env};
+        my $guard = File::pushd::pushd($self->{cwd}) if $self->{cwd};
         $pid = system { $command->[0] } 1, @cmd;
     } else {
+        local %ENV = %{$self->{env}} if $self->{env};
+        my $guard = File::pushd::pushd($self->{cwd}) if $self->{cwd};
         $pid = system 1, $command;
     }
 
@@ -180,6 +193,13 @@ sub _exec {
         }
         if ($Config::Config{d_setpgrp}) {
             POSIX::setpgid(0, 0) or die "setpgid: $!";
+        }
+
+        if ($self->{cwd}) {
+            chdir $self->{cwd} or die "chdir $self->{cwd}: $!";
+        }
+        if ($self->{env}) {
+            %ENV = %{$self->{env}};
         }
 
         if (ref $command) {
@@ -301,10 +321,24 @@ set environment variables.
 
   Command::Runner->new(..., env => \%env)->run
 
-is equivalent to
+is roughly equivalent to
 
   {
     local %ENV = %env;
+    Command::Runner->new(...)->run;
+  }
+
+=item cwd
+
+set the current directory.
+
+  Command::Runner->new(..., cwd => $dir)->run
+
+is roughly equivalent to
+
+  {
+    require File::pushd;
+    my $guard = File::pushd::pushd($dir);
     Command::Runner->new(...)->run;
   }
 

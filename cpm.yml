@@ -2,6 +2,7 @@ prereqs:
   runtime:
     requires:
       Capture::Tiny:
+      File::pushd:
       String::ShellQuote:
       Win32::ShellQuote:
       perl: { version: '5.008001' }
