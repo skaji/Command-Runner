@@ -16,15 +16,6 @@ Command::Runner - run external commands and Perl code refs
     );
     my $res = $cmd->run;
 
-    my $untar = Command::Runner->new;
-    $untar->commandf(
-      '%q -dc %q | %q tf -',
-      'C:\\Program Files (x86)\\GnuWin32\\bin\\gzip.EXE',
-      'File-ShareDir-Install-0.13.tar.gz'
-      'C:\\Program Files (x86)\\GnuWin32\\bin\\tar.EXE',
-    );
-    my $capture = $untar->run->{stdout};
-
 # DESCRIPTION
 
 Command::Runner runs external commands and Perl code refs
@@ -39,21 +30,6 @@ A constructor, which takes:
 
     an array of external commands, a string of external programs, or a Perl code ref.
     If an array of external commands is specified, it is automatically quoted on Windows.
-
-- commandf
-
-    a command string by `sprintf`-like syntax.
-    You can use positional formatting together with a conversion `%q` (with quoting).
-
-    Here is an example:
-
-        my $cmd = Command::Runner->new(
-          commandf => [ '%q %q >> %q', '/path/to/cat', 'foo bar.txt', 'out.txt' ],
-        );
-
-        # or, you can set it separately
-        my $cmd = Command::Runner->new;
-        $cmd->commandf('%q %q >> %q', '/path/to/cat', 'foo bar.txt', 'out.txt');
 
 - timeout
 

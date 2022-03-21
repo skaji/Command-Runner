@@ -22,15 +22,14 @@ sub new {
     my $command = delete $option{command};
     my $commandf = delete $option{commandf};
     die "Cannot specify both command and commandf" if $command && $commandf;
-    if (!$command && $commandf) {
-        $command = Command::Runner::Format::commandf @$commandf;
-    }
-    bless {
+    my $self = bless {
         keep => 1,
         _buffer => {},
         %option,
         ($command ? (command => $command) : ()),
     }, $class;
+    $self->commandf(@$commandf) if $commandf;
+    $self;
 }
 
 for my $attr (qw(command redirect timeout keep stdout stderr env)) {
@@ -42,9 +41,11 @@ for my $attr (qw(command redirect timeout keep stdout stderr env)) {
     };
 }
 
+# NOTE: commandf is derecated; do not use this. will be removed in the future version
 sub commandf {
     my ($self, $format, @args) = @_;
-    $self->{command} = Command::Runner::Format::commandf $format, @args;
+    require Command::Runner::Format;
+    $self->{command} = Command::Runner::Format::commandf($format, @args);
     $self;
 }
 
@@ -260,15 +261,6 @@ Command::Runner - run external commands and Perl code refs
   );
   my $res = $cmd->run;
 
-  my $untar = Command::Runner->new;
-  $untar->commandf(
-    '%q -dc %q | %q tf -',
-    'C:\\Program Files (x86)\\GnuWin32\\bin\\gzip.EXE',
-    'File-ShareDir-Install-0.13.tar.gz'
-    'C:\\Program Files (x86)\\GnuWin32\\bin\\tar.EXE',
-  );
-  my $capture = $untar->run->{stdout};
-
 =head1 DESCRIPTION
 
 Command::Runner runs external commands and Perl code refs
@@ -285,21 +277,6 @@ A constructor, which takes:
 
 an array of external commands, a string of external programs, or a Perl code ref.
 If an array of external commands is specified, it is automatically quoted on Windows.
-
-=item commandf
-
-a command string by C<sprintf>-like syntax.
-You can use positional formatting together with a conversion C<%q> (with quoting).
-
-Here is an example:
-
-  my $cmd = Command::Runner->new(
-    commandf => [ '%q %q >> %q', '/path/to/cat', 'foo bar.txt', 'out.txt' ],
-  );
-
-  # or, you can set it separately
-  my $cmd = Command::Runner->new;
-  $cmd->commandf('%q %q >> %q', '/path/to/cat', 'foo bar.txt', 'out.txt');
 
 =item timeout
 
