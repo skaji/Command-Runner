@@ -54,10 +54,24 @@ A constructor, which takes:
 
         Command::Runner->new(..., env => \%env)->run
 
-    is equivalent to
+    is roughly equivalent to
 
         {
           local %ENV = %env;
+          Command::Runner->new(...)->run;
+        }
+
+- cwd
+
+    set the current directory.
+
+        Command::Runner->new(..., cwd => $dir)->run
+
+    is roughly equivalent to
+
+        {
+          require File::pushd;
+          my $guard = File::pushd::pushd($dir);
           Command::Runner->new(...)->run;
         }
 
