@@ -43,7 +43,7 @@
    "provides" : {
       "Command::Runner" : {
          "file" : "lib/Command/Runner.pm",
-         "version" : "0.200"
+         "version" : "0.201"
       },
       "Command::Runner::LineBuffer" : {
          "file" : "lib/Command/Runner/LineBuffer.pm"
@@ -67,7 +67,7 @@
          "web" : "https://github.com/skaji/Command-Runner"
       }
    },
-   "version" : "0.200",
+   "version" : "0.201",
    "x_contributors" : [
       "Shoichi Kaji <skaji@outlook.com>"
    ],

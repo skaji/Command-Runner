@@ -14,7 +14,7 @@ use Time::HiRes ();
 
 use constant WIN32 => $^O eq 'MSWin32';
 
-our $VERSION = '0.200';
+our $VERSION = '0.201';
 our $TICK = 0.02;
 
 sub new {
