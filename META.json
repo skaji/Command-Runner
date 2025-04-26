@@ -45,9 +45,6 @@
          "file" : "lib/Command/Runner.pm",
          "version" : "0.200"
       },
-      "Command::Runner::Format" : {
-         "file" : "lib/Command/Runner/Format.pm"
-      },
       "Command::Runner::LineBuffer" : {
          "file" : "lib/Command/Runner/LineBuffer.pm"
       },
