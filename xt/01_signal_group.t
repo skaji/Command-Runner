@@ -1,5 +1,6 @@
-use strict;
+use v5.24;
 use warnings;
+use experimental qw(lexical_subs signatures);
 use Test::More;
 use Command::Runner;
 use File::Temp ();
@@ -7,7 +8,9 @@ use File::Temp ();
 plan skip_all => 'disable on windows' if $^O eq 'MSWin32';
 
 my $code = <<'___';
-use strict;
+use v5.24;
+use warnings;
+use experimental qw(lexical_subs signatures);
 use warnings;
 
 my $filename = shift @ARGV;
@@ -16,7 +19,7 @@ my $pid = fork;
 die unless defined $pid;
 
 if ($pid == 0) {
-    my $TERM; $SIG{TERM} = sub { $TERM++ };
+    my $TERM; $SIG{TERM} = sub (@) { $TERM++ };
     while (!$TERM) {
         sleep 1;
     }
@@ -26,7 +29,7 @@ if ($pid == 0) {
     }
     exit 0;
 } else {
-    my $TERM; $SIG{TERM} = sub { $TERM++ };
+    my $TERM; $SIG{TERM} = sub (@) { $TERM++ };
     wait;
     exit( $TERM ? 2 : 3 );
 }

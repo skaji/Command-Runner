@@ -1,5 +1,6 @@
-use strict;
+use v5.24;
 use warnings;
+use experimental qw(lexical_subs signatures);
 
 use Test::More;
 
@@ -8,7 +9,7 @@ use Cwd qw(getcwd abs_path);
 use File::Basename 'dirname';
 use File::Temp 'tempdir';
 
-subtest external => sub {
+subtest external => sub (@) {
     my $tempdir = tempdir CLEANUP => 1;
     $tempdir = abs_path $tempdir;
     chdir $tempdir or die;
@@ -21,8 +22,7 @@ subtest external => sub {
     my $cmd = Command::Runner->new(
         command => [ $^X, "-MCwd=getcwd,abs_path", "-le", 'sleep 1; print abs_path getcwd;' ],
         cwd => $dir,
-        stdout => sub {
-            my $line = shift;
+        stdout => sub ($line) {
             chomp $line;
             $command_dir = $line;
             $stdout_cb_dir = abs_path getcwd;
@@ -36,7 +36,7 @@ subtest external => sub {
     chdir "/";
 };
 
-subtest code => sub {
+subtest code => sub (@) {
     my $tempdir = tempdir CLEANUP => 1;
     $tempdir = abs_path $tempdir;
     chdir $tempdir or die;
@@ -47,12 +47,11 @@ subtest code => sub {
 
     my ($command_dir, $stdout_cb_dir);
     my $cmd = Command::Runner->new(
-        command => sub {
+        command => sub (@) {
             print abs_path(getcwd), "\n";
         },
         cwd => $dir,
-        stdout => sub {
-            my $line = shift;
+        stdout => sub ($line) {
             chomp $line;
             $command_dir = $line;
             $stdout_cb_dir = abs_path getcwd;
@@ -66,7 +65,7 @@ subtest code => sub {
     chdir "/";
 };
 
-subtest external_with_env => sub {
+subtest external_with_env => sub (@) {
     my $tempdir = tempdir CLEANUP => 1;
     $tempdir = abs_path $tempdir;
     chdir $tempdir or die;
@@ -81,8 +80,7 @@ subtest external_with_env => sub {
         command => [ $^X, "-MCwd=getcwd,abs_path", "-le", 'sleep 1; print abs_path getcwd; print $ENV{FOO};' ],
         cwd => $dir,
         env => { %ENV, FOO => 'BAR' },
-        stdout => sub {
-            my $line = shift;
+        stdout => sub ($line) {
             chomp $line;
             if ($command_dir) {
                 $command_env = $line;
@@ -103,7 +101,7 @@ subtest external_with_env => sub {
     chdir "/";
 };
 
-subtest code_with_env => sub {
+subtest code_with_env => sub (@) {
     my $tempdir = tempdir CLEANUP => 1;
     $tempdir = abs_path $tempdir;
     chdir $tempdir or die;
@@ -115,14 +113,13 @@ subtest code_with_env => sub {
     delete $ENV{FOO};
     my ($command_dir, $stdout_cb_dir, $command_env, $stdout_cb_env);
     my $cmd = Command::Runner->new(
-        command => sub {
+        command => sub (@) {
             print abs_path(getcwd), "\n";
             print $ENV{FOO}, "\n";
         },
         cwd => $dir,
         env => { %ENV, FOO => 'BAR' },
-        stdout => sub {
-            my $line = shift;
+        stdout => sub ($line) {
             chomp $line;
             if ($command_dir) {
                 $command_env = $line;
