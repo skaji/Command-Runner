@@ -360,13 +360,6 @@ So I ended up creating a seperate module, Command::Runner.
 
 Shoichi Kaji <skaji@cpan.org>
 
-=head1 ARTIFACT ATTESTATIONS
-
-GitHub Artifact Attestations are generated for release tarballs uploaded to
-CPAN. If you care about provenance for the uploaded tarballs, see:
-
-L<https://github.com/skaji/Command-Runner/attestations>
-
 =head1 COPYRIGHT AND LICENSE
 
 Copyright 2017 Shoichi Kaji <skaji@cpan.org>
