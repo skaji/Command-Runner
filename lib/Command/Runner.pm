@@ -356,9 +356,13 @@ While L<App::cpanminus> has excellent APIs for such use, I still needed to tweak
 
 So I ended up creating a seperate module, Command::Runner.
 
-=head1 AUTHOR
 
-Shoichi Kaji <skaji@cpan.org>
+=head1 ARTIFACT ATTESTATIONS
+
+GitHub Artifact Attestations are generated for release tarballs uploaded to
+CPAN. If you care about provenance for the uploaded tarballs, see:
+
+L<https://github.com/skaji/Command-Runner/attestations>
 
 =head1 COPYRIGHT AND LICENSE
 

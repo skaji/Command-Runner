@@ -95,9 +95,12 @@ While [App::cpanminus](https://metacpan.org/pod/App%3A%3Acpanminus) has excellen
 
 So I ended up creating a seperate module, Command::Runner.
 
-# AUTHOR
+# ARTIFACT ATTESTATIONS
 
-Shoichi Kaji <skaji@cpan.org>
+GitHub Artifact Attestations are generated for release tarballs uploaded to
+CPAN. If you care about provenance for the uploaded tarballs, see:
+
+[https://github.com/skaji/Command-Runner/attestations](https://github.com/skaji/Command-Runner/attestations)
 
 # COPYRIGHT AND LICENSE
 
