@@ -1,5 +1,3 @@
-[![Actions Status](https://github.com/skaji/Command-Runner/actions/workflows/test.yml/badge.svg)](https://github.com/skaji/Command-Runner/actions)
-
 # NAME
 
 Command::Runner - run external commands and Perl code refs
@@ -11,8 +9,8 @@ Command::Runner - run external commands and Perl code refs
     my $cmd = Command::Runner->new(
       command => ['ls', '-al'],
       timeout => 10,
-      stdout  => sub { warn "out: $_[0]\n" },
-      stderr  => sub { warn "err: $_[0]\n" },
+      stdout  => sub (@) { warn "out: $_[0]\n" },
+      stderr  => sub (@) { warn "err: $_[0]\n" },
     );
     my $res = $cmd->run;
 
