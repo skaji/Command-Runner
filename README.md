@@ -9,8 +9,8 @@ Command::Runner - run external commands and Perl code refs
     my $cmd = Command::Runner->new(
       command => ['ls', '-al'],
       timeout => 10,
-      stdout  => sub (@) { warn "out: $_[0]\n" },
-      stderr  => sub (@) { warn "err: $_[0]\n" },
+      stdout  => sub ($line) { warn "out: $line\n" },
+      stderr  => sub ($line) { warn "err: $line\n" },
     );
     my $res = $cmd->run;
 
